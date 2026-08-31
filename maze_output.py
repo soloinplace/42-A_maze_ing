@@ -41,12 +41,13 @@ class MazeOutput:
                     if (row != len(maze_hexa) - 1):
                         f.write("\n")
             MazeOutput.verif_ouput_file(output)
+            #TODO: Ecrire le plus court chemin aussi
         except Exception as e:
             print(f"{type(e).__name__}: {e}")
 
 
     @staticmethod
-    def generate_output_maze(output: str) -> list[list[int]]:
+    def generate_from_output_maze(output: str) -> list[list[int]]:
         try:
             MazeOutput.verif_ouput_file(output)
             maze: list[list[int]] = []
@@ -62,6 +63,7 @@ class MazeOutput:
         except Exception as e:
             print(f"{type(e).__name__}: {e}")
         #TODO: Vérifier le maze
+        #TODO: Prendre le plus court chemin aussi
         return maze
 
 
@@ -90,5 +92,5 @@ if __name__ == "__main__":
         [10, 8, 9]
     ]
 
-    #MazeOutput.write_output_file(maze, "maze.txt")
+    MazeOutput.write_output_file(maze, "maze.txt")
     MazeOutput.generate_output_maze("maze.txt")

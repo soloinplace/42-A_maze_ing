@@ -18,5 +18,5 @@ if __name__ == "__main__":
     ]
 
     MazeOutput.write_output_file(maze, "maze.txt")
-    MazeOutput.generate_output_maze("maze.txt")
+    MazeOutput.generate_from_output_maze("maze.txt")
     print(ConfigParse.parse_config(sys.argv[1]))
