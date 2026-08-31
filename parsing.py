@@ -2,6 +2,7 @@
 """Parsing and checking of the A-Maze-ing config.txt file."""
 
 from __future__ import annotations
+from config import Config
 import traceback
 
 
@@ -9,7 +10,7 @@ class ConfigParse:
     """Parses and checks the A-Maze-ing config.txt file."""
 
     @staticmethod
-    def parse_config(path: str) -> dict[str, object] | None:
+    def parse_config(path: str) -> Config | None:
         """We read the config file and see if all the keys are respected."""
         configs_file: dict[str, str] = {}
 
@@ -26,17 +27,18 @@ class ConfigParse:
             height = ConfigParse.check_height(configs_file["HEIGHT"])
             entry = ConfigParse.check_entry(configs_file["ENTRY"])
             exit_ = ConfigParse.check_exit(configs_file["EXIT"])
-            output_file = ConfigParse.check_output_file(configs_file["OUTPUT_FILE"])
+            c = configs_file["OUTPUT_FILE"]
+            output_file = ConfigParse.check_output_file(c)
             perfect = ConfigParse.check_perfect(configs_file["PERFECT"])
 
-            return {
-                "width": width,
-                "height": height,
-                "entry": entry,
-                "exit": exit_,
-                "output_file": output_file,
-                "perfect": perfect,
-            }
+            return Config(
+                width,
+                height,
+                entry,
+                exit_,
+                output_file,
+                perfect
+            )
 
         except Exception as e:
             tb = traceback.extract_tb(e.__traceback__)

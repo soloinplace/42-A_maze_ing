@@ -16,7 +16,9 @@ if __name__ == "__main__":
         [5, 1, 5],
         [10, 8, 9]
     ]
-
+    parsing = ConfigParse.parse_config(sys.argv[1])
+    if parsing is None:
+        sys.exit(0)
     MazeOutput.write_output_file(maze, "maze.txt")
     MazeOutput.generate_from_output_maze("maze.txt")
     print(ConfigParse.parse_config(sys.argv[1]))
