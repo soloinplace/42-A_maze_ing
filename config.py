@@ -1,37 +1,37 @@
-class Config():
+"""Typed application configuration."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+Cell = tuple[int, int]
+
+
+@dataclass(frozen=True)
+class Config:
+    """Hold one completely parsed and validated configuration."""
+
     width: int
     height: int
-    entry: tuple[int, int]
-    exit_: tuple[int, int]
+    entry: Cell
+    exit: Cell
     output_file: str
     perfect: bool
-    seed: int | None
-    
-    def __init__(
-            self,
-            width: int,
-            height: int,
-            entry: tuple[int, int],
-            exit_: tuple[int, int],
-            output_file: str,
-            perfect: bool,
-            seed: int | None = None):
-        self.width = width
-        self.height = height
-        self.entry = entry
-        self.exit_ = exit_
-        self.output_file = output_file
-        self.perfect = perfect
-        self.seed = None
-        if seed:
-            self.seed = seed
+    seed: int | None = None
 
+    def __post_init__(self) -> None:
+        """Validate relationships that depend on several fields."""
+        if self.width <= 0 or self.height <= 0:
+            raise ValueError("WIDTH and HEIGHT must be positive")
+        for name, (x, y) in (("ENTRY", self.entry), ("EXIT", self.exit)):
+            if not 0 <= x < self.width or not 0 <= y < self.height:
+                raise ValueError(f"{name} must be inside the maze")
+        if self.entry == self.exit:
+            raise ValueError("ENTRY and EXIT must be different")
+        if not self.output_file:
+            raise ValueError("OUTPUT_FILE must not be empty")
 
-    def __str__(self):
-        return f"Width = {self.width}, " \
-        f"Height = {self.height}, " \
-        f"Entry = {self.entry}, " \
-        f"Exit = {self.exit_}, " \
-        f"Output file = {self.output_file}, " \
-        f"Perfect = {self.perfect}, " \
-        f"Seed = {self.seed}"
+    @property
+    def exit_(self) -> Cell:
+        """Keep compatibility with the previous attribute name."""
+        return self.exit

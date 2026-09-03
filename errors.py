@@ -1,6 +1,13 @@
-class OutputFileError(Exception):
-    def __init__(self, message="OutputFileError"):
-        msg = message
-        if message == "OutputFileError":
-            msg = f"OutputFileError: {message}"
-        super().__init__(msg)
+"""Application-specific exceptions with user-facing messages."""
+
+
+class AMazeIngError(Exception):
+    """Base class for expected application errors."""
+
+
+class ConfigurationError(AMazeIngError):
+    """Raised when the configuration file cannot be parsed."""
+
+
+class OutputFileError(AMazeIngError):
+    """Raised when a maze output file is invalid or cannot be written."""

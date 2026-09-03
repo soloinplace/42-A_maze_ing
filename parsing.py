@@ -1,132 +1,135 @@
 #!/usr/bin/env python3
-"""Parsing and checking of the A-Maze-ing config.txt file."""
+"""Parsing and checking of the A-Maze-ing configuration file."""
 
 from __future__ import annotations
+
 from config import Config
-import traceback
+from errors import ConfigurationError
 
 
 class ConfigParse:
-    """Parses and checks the A-Maze-ing config.txt file."""
+    """Parse and validate the A-Maze-ing configuration file."""
 
     @staticmethod
-    def parse_config(path: str) -> Config | None:
-        """We read the config file and see if all the keys are respected."""
-        configs_file: dict[str, str] = {}
+    def parse_config(path: str) -> Config:
+        """Read *path* and return a fully validated configuration.
 
+        Raises:
+            ConfigurationError: If the file or one of its values is invalid.
+        """
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith("#"):
-                        continue
-                    key, _, value = line.partition("=")
-                    configs_file[key.strip().upper()] = value.strip()
-
-            width = ConfigParse.check_width(configs_file["WIDTH"])
-            height = ConfigParse.check_height(configs_file["HEIGHT"])
-            entry = ConfigParse.check_entry(configs_file["ENTRY"])
-            exit_ = ConfigParse.check_exit(configs_file["EXIT"])
-            c = configs_file["OUTPUT_FILE"]
-            output_file = ConfigParse.check_output_file(c)
-            perfect = ConfigParse.check_perfect(configs_file["PERFECT"])
-
+            values = ConfigParse._read_values(path)
+            missing = ConfigParse._missing_keys(values)
+            if missing:
+                names = ", ".join(sorted(missing))
+                raise ValueError(f"missing mandatory key(s): {names}")
             return Config(
-                width,
-                height,
-                entry,
-                exit_,
-                output_file,
-                perfect
+                width=ConfigParse.check_width(values["WIDTH"]),
+                height=ConfigParse.check_height(values["HEIGHT"]),
+                entry=ConfigParse.check_entry(values["ENTRY"]),
+                exit=ConfigParse.check_exit(values["EXIT"]),
+                output_file=ConfigParse.check_output_file(
+                    values["OUTPUT_FILE"]
+                ),
+                perfect=ConfigParse.check_perfect(values["PERFECT"]),
+                seed=ConfigParse.check_seed(values.get("SEED")),
             )
+        except OSError as error:
+            raise ConfigurationError(
+                f"cannot read configuration file {path!r}: {error}"
+            ) from error
+        except (KeyError, TypeError, ValueError) as error:
+            raise ConfigurationError(f"invalid configuration: {error}") \
+                from error
 
-        except Exception as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            print(f"Function: {tb[-1].name}()")
-            print(f"Error: {type(e).__name__}: {e}")
-            return None
+    @staticmethod
+    def _read_values(path: str) -> dict[str, str]:
+        """Read key-value pairs and reject malformed or duplicate lines."""
+        values: dict[str, str] = {}
+        with open(path, "r", encoding="utf-8") as stream:
+            for number, raw_line in enumerate(stream, start=1):
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    raise ValueError(f"line {number}: expected KEY=VALUE")
+                key, value = (part.strip() for part in line.split("=", 1))
+                key = key.upper()
+                if not key or not value:
+                    raise ValueError(f"line {number}: empty key or value")
+                if key in values:
+                    raise ValueError(f"line {number}: duplicate key {key}")
+                values[key] = value
+        return values
+
+    @staticmethod
+    def _missing_keys(values: dict[str, str]) -> set[str]:
+        """Return mandatory keys absent from the parsed mapping."""
+        mandatory = {
+            "WIDTH",
+            "HEIGHT",
+            "ENTRY",
+            "EXIT",
+            "OUTPUT_FILE",
+            "PERFECT",
+        }
+        return mandatory - values.keys()
 
     @staticmethod
     def check_width(width: str) -> int:
-        """
-        Checking if the width is an int and positive
-
-        Return the number width (int)
-        """
-        w = int(width)
-        if w > 0:
-            return w
-        raise ValueError("La width doit être positive")
+        """Return a strictly positive maze width."""
+        value = int(width)
+        if value > 0:
+            return value
+        raise ValueError("WIDTH must be positive")
 
     @staticmethod
     def check_height(height: str) -> int:
-        """
-        Checking if the height is an int and positive
-
-        Return the number height (int)
-        """
-        h = int(height)
-        if h > 0:
-            return h
-        raise ValueError("La height doit être positive")
+        """Return a strictly positive maze height."""
+        value = int(height)
+        if value > 0:
+            return value
+        raise ValueError("HEIGHT must be positive")
 
     @staticmethod
     def check_entry(entry: str) -> tuple[int, int]:
-        """
-        Checking if entry is a valid "x,y" coordinate pair
-
-        Return the (x, y) tuple
-        """
-        x_str, _, y_str = entry.partition(",")
-        x, y = int(x_str), int(y_str)
-        if x < 0 or y < 0:
-            raise ValueError("ENTRY doit être composé de coordonnées >= 0")
-        return x, y
+        """Return ENTRY parsed as a non-negative ``(x, y)`` pair."""
+        return ConfigParse._check_coordinate(entry, "ENTRY")
 
     @staticmethod
     def check_exit(exit: str) -> tuple[int, int]:
-        """
-        Checking if exit is a valid "x,y" coordinate pair
+        """Return EXIT parsed as a non-negative ``(x, y)`` pair."""
+        return ConfigParse._check_coordinate(exit, "EXIT")
 
-        Return the (x, y) tuple
-        """
-        x_str, _, y_str = exit.partition(",")
-        x, y = int(x_str), int(y_str)
+    @staticmethod
+    def _check_coordinate(value: str, name: str) -> tuple[int, int]:
+        """Parse exactly two non-negative integers separated by a comma."""
+        parts = value.split(",")
+        if len(parts) != 2:
+            raise ValueError(f"{name} must use the x,y format")
+        x, y = (int(part.strip()) for part in parts)
         if x < 0 or y < 0:
-            raise ValueError("EXIT doit être composé de coordonnées >= 0")
+            raise ValueError(f"{name} coordinates must be non-negative")
         return x, y
 
     @staticmethod
     def check_output_file(output_file: str) -> str:
-        """
-        Checking that output_file is a non-empty filename
-
-        Return the output_file (str)
-        """
+        """Return a non-empty output filename."""
         if not output_file:
-            raise ValueError("OUTPUT_FILE ne doit pas être vide")
+            raise ValueError("OUTPUT_FILE must not be empty")
         return output_file
 
     @staticmethod
     def check_perfect(perfect: str) -> bool:
-        """
-        Checking if perfect is a valid boolean flag (True/False)
-
-        Return the perfect flag (bool)
-        """
+        """Parse a textual boolean flag."""
         normalized = perfect.strip().lower()
         if normalized in ("true", "1", "yes"):
             return True
         if normalized in ("false", "0", "no"):
             return False
-        raise ValueError("PERFECT doit être True ou False")
+        raise ValueError("PERFECT must be True or False")
 
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) != 2:
-        print("Usage: python3 config_parser.py <config.txt>")
-        sys.exit(1)
-
-    print(ConfigParse.parse_config(sys.argv[1]))
+    @staticmethod
+    def check_seed(seed: str | None) -> int | None:
+        """Parse the optional deterministic random seed."""
+        return None if seed is None else int(seed)
