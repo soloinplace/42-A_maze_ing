@@ -28,4 +28,3 @@ lint-strict:
 
 package:
 	$(PYTHON) -m build --outdir .
-

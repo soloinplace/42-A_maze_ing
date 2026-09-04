@@ -1,4 +1,6 @@
-Copyright (c) 2026 soloinplace and Loic
+MIT License
+
+Copyright (c) 2026 Côme Sodini and Loïc Mauritius
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation

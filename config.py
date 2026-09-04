@@ -30,8 +30,3 @@ class Config:
             raise ValueError("ENTRY and EXIT must be different")
         if not self.output_file:
             raise ValueError("OUTPUT_FILE must not be empty")
-
-    @property
-    def exit_(self) -> Cell:
-        """Keep compatibility with the previous attribute name."""
-        return self.exit

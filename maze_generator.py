@@ -111,7 +111,7 @@ class MazeGenerator:
                 self._add_extra_loops()
             self.solution = self._find_shortest_path()
             try:
-                self.validate()
+                self._check_result()
                 return self.maze
             except RuntimeError as error:
                 last_error = str(error)
@@ -120,37 +120,31 @@ class MazeGenerator:
             f"{last_error}"
         )
 
-    def get_maze(self) -> list[list[int]]:
-        """Return a copy of the generated wall grid."""
-        return [row[:] for row in self.maze]
-
-    def get_solution(self) -> list[Cell]:
-        """Return a copy of the generated shortest path."""
-        return self.solution[:]
-
-    def validate(self) -> None:
-        """Check every invariant promised by the generator.
+    def _check_result(self) -> None:
+        """Check the results that can still vary after generation.
 
         Raises:
             RuntimeError: If the current maze violates an invariant.
         """
-        self._validate_grid_shape()
-        self._validate_external_walls()
-        self._validate_shared_walls()
-        self._validate_connectivity()
+        if not self.solution:
+            raise RuntimeError("the exit is not reachable")
         if self._has_open_3_by_3():
             raise RuntimeError("the maze contains an open 3x3 area")
         loops = self._loop_count()
         if self.perfect and loops != 0:
             raise RuntimeError("a perfect maze contains a cycle")
         if not self.perfect:
-            self._validate_playable_board(loops)
-        expected = self._find_shortest_path()
-        if not expected or self.solution != expected:
-            raise RuntimeError("solution is not the shortest valid path")
+            if loops < 2:
+                raise RuntimeError(
+                    "a non-perfect board has fewer than two loops"
+                )
+            if self._real_dead_end_count() > 2:
+                raise RuntimeError(
+                    "the board has more than two real dead-ends"
+                )
 
     def _validate_parameters(self) -> None:
-        """Reject invalid constructor arguments early."""
+        """Check the constructor arguments."""
         if self.width <= 0 or self.height <= 0:
             raise ValueError("width and height must be positive")
         for name, cell in (("entry", self.entry), ("exit", self.exit)):
@@ -245,7 +239,7 @@ class MazeGenerator:
         return len(seen) == self.width * self.height - len(blocked)
 
     def _check_non_perfect_capacity(self) -> None:
-        """Reject boards that cannot mathematically contain two cycles."""
+        """Check that the grid can contain at least two cycles."""
         if self.perfect:
             return
         cells = self._normal_cells()
@@ -478,93 +472,6 @@ class MazeGenerator:
         }
         wall = wall_by_step[(delta_x, delta_y)]
         return not self.maze[first[1]][first[0]] & wall
-
-    def _validate_grid_shape(self) -> None:
-        """Validate dimensions, cell ranges, and pattern cells."""
-        if len(self.maze) != self.height:
-            raise RuntimeError("maze height changed unexpectedly")
-        if any(len(row) != self.width for row in self.maze):
-            raise RuntimeError("maze rows are not rectangular")
-        if any(
-            not 0 <= value <= ALL_WALLS
-            for row in self.maze
-            for value in row
-        ):
-            raise RuntimeError("a cell wall value is outside 0..15")
-        if any(
-            self.maze[y][x] != ALL_WALLS
-            for x, y in self.pattern_cells
-        ):
-            raise RuntimeError("a 42 pattern cell is not fully closed")
-
-    def _validate_external_walls(self) -> None:
-        """Ensure no passage leaves the maze."""
-        if any(not self.maze[0][x] & NORTH for x in range(self.width)):
-            raise RuntimeError("the north border is open")
-        if any(
-            not self.maze[self.height - 1][x] & SOUTH
-            for x in range(self.width)
-        ):
-            raise RuntimeError("the south border is open")
-        if any(not row[0] & WEST for row in self.maze):
-            raise RuntimeError("the west border is open")
-        if any(not row[self.width - 1] & EAST for row in self.maze):
-            raise RuntimeError("the east border is open")
-
-    def _validate_shared_walls(self) -> None:
-        """Ensure each shared wall has the same state on both cells."""
-        for y in range(self.height):
-            for x in range(self.width):
-                value = self.maze[y][x]
-                if x + 1 < self.width:
-                    east = bool(value & EAST)
-                    west = bool(self.maze[y][x + 1] & WEST)
-                    if east != west:
-                        raise RuntimeError("east/west wall mismatch")
-                if y + 1 < self.height:
-                    south = bool(value & SOUTH)
-                    north = bool(self.maze[y + 1][x] & NORTH)
-                    if south != north:
-                        raise RuntimeError("north/south wall mismatch")
-
-    def _validate_connectivity(self) -> None:
-        """Ensure every non-pattern cell is reachable from the entry."""
-        reachable = self._reachable_cells()
-        expected = set(self._normal_cells())
-        if reachable != expected:
-            raise RuntimeError("not every corridor is reachable")
-
-    def _validate_playable_board(self, loops: int) -> None:
-        """Validate the extra Pac-Man-mode guarantees."""
-        if loops < 2:
-            raise RuntimeError("a non-perfect board has fewer than two loops")
-        key_cells = {
-            (0, 0),
-            (self.width - 1, 0),
-            (0, self.height - 1),
-            (self.width - 1, self.height - 1),
-        }
-        if key_cells & self.pattern_cells:
-            raise RuntimeError("a corner is blocked")
-        if not self._centre_remains_open(self.pattern_cells):
-            raise RuntimeError("the centre is blocked")
-        if self._real_dead_end_count() > 2:
-            raise RuntimeError("the board has more than two real dead-ends")
-
-    def _reachable_cells(self) -> set[Cell]:
-        """Return corridors reachable through open passages from entry."""
-        seen = {self.entry}
-        queue = deque([self.entry])
-        while queue:
-            cell = queue.popleft()
-            x, y = cell
-            for neighbour, wall, _ in self._neighbours(cell):
-                if neighbour in seen or neighbour in self.pattern_cells:
-                    continue
-                if not self.maze[y][x] & wall:
-                    seen.add(neighbour)
-                    queue.append(neighbour)
-        return seen
 
     def _real_dead_end_count(self) -> int:
         """Count dead-ends that could be opened toward a normal cell."""

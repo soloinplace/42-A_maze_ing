@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from config import Config
-from errors import ConfigurationError
+from errors import AMazeIngError
 
 
 class ConfigParse:
@@ -15,7 +15,7 @@ class ConfigParse:
         """Read *path* and return a fully validated configuration.
 
         Raises:
-            ConfigurationError: If the file or one of its values is invalid.
+            AMazeIngError: If the file or one of its values is invalid.
         """
         try:
             values = ConfigParse._read_values(path)
@@ -24,22 +24,26 @@ class ConfigParse:
                 names = ", ".join(sorted(missing))
                 raise ValueError(f"missing mandatory key(s): {names}")
             return Config(
-                width=ConfigParse.check_width(values["WIDTH"]),
-                height=ConfigParse.check_height(values["HEIGHT"]),
-                entry=ConfigParse.check_entry(values["ENTRY"]),
-                exit=ConfigParse.check_exit(values["EXIT"]),
-                output_file=ConfigParse.check_output_file(
-                    values["OUTPUT_FILE"]
+                width=int(values["WIDTH"]),
+                height=int(values["HEIGHT"]),
+                entry=ConfigParse._parse_coordinate(
+                    values["ENTRY"], "ENTRY"
                 ),
-                perfect=ConfigParse.check_perfect(values["PERFECT"]),
-                seed=ConfigParse.check_seed(values.get("SEED")),
+                exit=ConfigParse._parse_coordinate(values["EXIT"], "EXIT"),
+                output_file=values["OUTPUT_FILE"],
+                perfect=ConfigParse._parse_bool(values["PERFECT"]),
+                seed=(
+                    int(values["SEED"])
+                    if "SEED" in values
+                    else None
+                ),
             )
         except OSError as error:
-            raise ConfigurationError(
+            raise AMazeIngError(
                 f"cannot read configuration file {path!r}: {error}"
             ) from error
-        except (KeyError, TypeError, ValueError) as error:
-            raise ConfigurationError(f"invalid configuration: {error}") \
+        except ValueError as error:
+            raise AMazeIngError(f"invalid configuration: {error}") \
                 from error
 
     @staticmethod
@@ -76,60 +80,20 @@ class ConfigParse:
         return mandatory - values.keys()
 
     @staticmethod
-    def check_width(width: str) -> int:
-        """Return a strictly positive maze width."""
-        value = int(width)
-        if value > 0:
-            return value
-        raise ValueError("WIDTH must be positive")
-
-    @staticmethod
-    def check_height(height: str) -> int:
-        """Return a strictly positive maze height."""
-        value = int(height)
-        if value > 0:
-            return value
-        raise ValueError("HEIGHT must be positive")
-
-    @staticmethod
-    def check_entry(entry: str) -> tuple[int, int]:
-        """Return ENTRY parsed as a non-negative ``(x, y)`` pair."""
-        return ConfigParse._check_coordinate(entry, "ENTRY")
-
-    @staticmethod
-    def check_exit(exit: str) -> tuple[int, int]:
-        """Return EXIT parsed as a non-negative ``(x, y)`` pair."""
-        return ConfigParse._check_coordinate(exit, "EXIT")
-
-    @staticmethod
-    def _check_coordinate(value: str, name: str) -> tuple[int, int]:
-        """Parse exactly two non-negative integers separated by a comma."""
+    def _parse_coordinate(value: str, name: str) -> tuple[int, int]:
+        """Parse exactly two integers separated by a comma."""
         parts = value.split(",")
         if len(parts) != 2:
             raise ValueError(f"{name} must use the x,y format")
-        x, y = (int(part.strip()) for part in parts)
-        if x < 0 or y < 0:
-            raise ValueError(f"{name} coordinates must be non-negative")
-        return x, y
+        x, y = parts
+        return int(x.strip()), int(y.strip())
 
     @staticmethod
-    def check_output_file(output_file: str) -> str:
-        """Return a non-empty output filename."""
-        if not output_file:
-            raise ValueError("OUTPUT_FILE must not be empty")
-        return output_file
-
-    @staticmethod
-    def check_perfect(perfect: str) -> bool:
-        """Parse a textual boolean flag."""
-        normalized = perfect.strip().lower()
-        if normalized in ("true", "1", "yes"):
+    def _parse_bool(value: str) -> bool:
+        """Parse the True or False value used by PERFECT."""
+        normalized = value.lower()
+        if normalized == "true":
             return True
-        if normalized in ("false", "0", "no"):
+        if normalized == "false":
             return False
         raise ValueError("PERFECT must be True or False")
-
-    @staticmethod
-    def check_seed(seed: str | None) -> int | None:
-        """Parse the optional deterministic random seed."""
-        return None if seed is None else int(seed)

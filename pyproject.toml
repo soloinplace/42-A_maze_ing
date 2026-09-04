@@ -5,15 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mazegen"
 version = "1.0.0"
-description = "Reusable deterministic perfect and braided maze generator"
+description = "Reusable deterministic perfect and non-perfect maze generator"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE.md"]
 authors = [
-    {name = "A-Maze-ing team"},
+    {name = "Côme Sodini"},
+    {name = "Loïc Mauritius"},
 ]
 
 [tool.setuptools]
 py-modules = ["maze_generator"]
-
