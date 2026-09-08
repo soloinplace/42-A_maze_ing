@@ -9,6 +9,7 @@ from errors import AMazeIngError
 from maze_generator import MazeGenerator
 from maze_output import MazeOutput
 from parsing import ConfigParse
+from rendering import AsciiRenderer
 
 
 def main(argv: list[str]) -> int:
@@ -34,6 +35,9 @@ def main(argv: list[str]) -> int:
             config.exit,
             generator.solution,
         )
+        # rendering: render_maze(generator.maze)
+        rendering = AsciiRenderer(grid, config, path)
+        rendering.run()
     except (AMazeIngError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
