@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""ASCII renderer for the A-Maze-ing maze, read from maze.txt."""
+"""Interactive ASCII renderer for a generated A-Maze-ing maze."""
 
 from __future__ import annotations
 
 import os
+
 from config import Config
+from maze_generator import MazeGenerator
 
 NORTH = 0b0001
 EAST = 0b0010
@@ -21,14 +23,13 @@ PATH_MARK = "\u25cf"
 
 
 class AsciiRenderer:
-    from maze_generator import MazeGenerator
     """Displays the maze in a terminal with interactive ASCII controls.
 
     Interactions (see subject, chapter 5):
         1: regenerate a new maze
         2: show/hide the solution path
-        3: change the horizontal wall character
-        4 / q / ESC: quit
+        3: change the wall color
+        4 / q: quit
     """
 
     def __init__(
@@ -44,10 +45,7 @@ class AsciiRenderer:
             grid: Maze cells (wall bitmask per cell).
             config: Maze configuration (entry/exit).
             path: Solution path as N/E/S/W letters.
-            regenerate: Optional callback returning a new
-                (grid, config, path) triple, called on the
-                "regenerate" key. Defaults to redrawing the same
-                maze (until MazeGenerator is wired in).
+            maze_generator: Generator used to create another maze.
         """
         self.grid = grid
         self.config = config
@@ -58,19 +56,28 @@ class AsciiRenderer:
         self.color_index = 0
 
     def run(self) -> None:
-        """Draw the maze and process one console key at a time."""
-        while True:
-            self.draw()
-            key = self._read_key()
-            if key in ("4", "q", "Q", "\x1b"):
-                self._close()
-                return
-            self.event_keyboard(key)
+        """Draw the maze and process commands until the user quits."""
+        try:
+            while True:
+                self.draw()
+                key = self._read_key()
+                if key in ("4", "q", "Q"):
+                    break
+                self.event_keyboard(key)
+        except (EOFError, KeyboardInterrupt):
+            pass
+        self._close()
 
     @staticmethod
     def _read_key() -> str:
-        """Read one key."""
-        return input().strip()[:1]
+        """Read one command and normalize the AZERTY number row."""
+        key = input().strip()[:1]
+        return {
+            "&": "1",
+            "é": "2",
+            '"': "3",
+            "'": "4",
+        }.get(key, key)
 
     def draw(self) -> None:
         """Redraw the whole maze as ASCII characters."""
@@ -130,23 +137,15 @@ class AsciiRenderer:
 
     def event_keyboard(self, key: str) -> None:
         """Handle one terminal key (see class docstring for bindings)."""
-        key = {
-            "&": "1",
-            "é": "2",
-            '"': "3",
-            "'": "4",
-        }.get(key, key)
         if key == "1":
             self.regen_maze()
         elif key == "2":
             self._toggle_path()
         elif key == "3":
             self._next_color()
-        elif key in ("4", "q", "Q", "\x1b"):
-            self._close()
 
     def regen_maze(self) -> None:
-        """Load a new maze from the configured regeneration callback."""
+        """Generate another maze and update its displayed path."""
         from maze_output import MazeOutput
 
         self.grid = self.maze_generator.generate()
@@ -157,17 +156,14 @@ class AsciiRenderer:
             self.maze_generator.solution
         )
         self.show_path = False
-        self.draw()
 
     def _toggle_path(self) -> None:
         """Toggle visibility of the solution path."""
         self.show_path = not self.show_path
-        self.draw()
 
     def _next_color(self) -> None:
-        """Select the next horizontal wall character and redraw."""
+        """Select the next wall color."""
         self.color_index = (self.color_index + 1) % len(WALL_PALETTE)
-        self.draw()
 
     def _close(self) -> None:
         """End the terminal renderer."""

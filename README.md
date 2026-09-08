@@ -66,6 +66,18 @@ make run CONFIG=other_config.txt
 `make package` builds the reusable maze generator package as standard Python
 distribution files at the repository root.
 
+### Visual controls
+
+The terminal renderer accepts the following commands:
+
+- `1`: generate and display another maze;
+- `2`: show or hide the shortest path;
+- `3`: change the wall color;
+- `4` or `q`: quit.
+
+Press Enter after each command. On an AZERTY keyboard, `&`, `é`, `"`, and `'`
+are also accepted for `1`, `2`, `3`, and `4`.
+
 ## Configuration
 
 The configuration file contains one `KEY=VALUE` pair per line.
@@ -263,45 +275,18 @@ The main parameters are:
 - `perfect`: selects perfect or non-perfect generation;
 - `seed`: optional deterministic random seed.
 
-After `generate()`:
+After `generate()`, the public attributes are:
 
-```python
-generator.maze
-```
+- `generator.maze`: the `list[list[int]]` grid, indexed with `maze[y][x]`;
+- `generator.solution`: the shortest path as `list[tuple[int, int]]`;
+- `generator.pattern_cells`: the cells used for the `42` pattern;
+- `generator.warnings`: any non-fatal generation messages.
 
-contains the maze as:
-
-```python
-list[list[int]]
-```
-
-indexed with `maze[y][x]`.
-
-The shortest path is available through:
-
-```python
-generator.solution
-```
-
-as:
-
-```python
-list[tuple[int, int]]
-```
-
-The generator also exposes:
-
-```python
-generator.pattern_cells
-generator.warnings
-```
-
-for the cells belonging to the `42` pattern and any non-fatal generation
-messages.
-
-The reusable distribution can be built with:
+In a fresh virtual environment, install the standard build frontend and build
+the reusable distribution with:
 
 ```console
+python3 -m pip install build
 make package
 ```
 
