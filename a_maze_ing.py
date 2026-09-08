@@ -35,8 +35,18 @@ def main(argv: list[str]) -> int:
             config.exit,
             generator.solution,
         )
+        path = MazeOutput.path_to_directions(
+            generator.maze,
+            config.entry,
+            config.exit,
+            generator.solution
+        )
         # rendering: render_maze(generator.maze)
-        rendering = AsciiRenderer(grid, config, path)
+        rendering = AsciiRenderer(
+            generator.maze, 
+            config, 
+            path, 
+            generator)
         rendering.run()
     except (AMazeIngError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
