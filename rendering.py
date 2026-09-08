@@ -11,7 +11,12 @@ EAST = 0b0010
 SOUTH = 0b0100
 WEST = 0b1000
 
-WALL_PALETTE = ["\033[34m\u2588\033[0m", "\033[32m\u2588\033[0m", "\033[33m\u2588\033[0m", "\033[31m\u2588\033[0m"]
+WALL_PALETTE = [
+    "\033[34m\u2588\033[0m",
+    "\033[32m\u2588\033[0m",
+    "\033[33m\u2588\033[0m",
+    "\033[31m\u2588\033[0m"
+]
 PATH_MARK = "\u25cf"
 
 
@@ -89,10 +94,14 @@ class AsciiRenderer:
                     rendered[2 * y + 1][2 * x] = wall
                 if cell & EAST:
                     rendered[2 * y + 1][2 * x + 2] = wall
-                if cell & NORTH and cell & SOUTH and cell & WEST and cell & EAST:
-                    for remplir_y in range(0,2):
-                        for remplir_x in range(0,2):
-                            rendered[2 * y + remplir_y][2 * x + remplir_x] = "\033[41m\u2588\033[0m"
+                east_and_west = cell & WEST and cell & EAST
+                if cell & NORTH and cell & SOUTH and east_and_west:
+                    w42 = "\033[41m\u2588\033[0m"
+                    for remplir_y in range(0, 2):
+                        for remplir_x in range(0, 2):
+                            rendered[
+                                2 * y + remplir_y][
+                                    2 * x + remplir_x] = w42
 
         if self.show_path:
             for x, y in self._path_cells()[1:-1]:
