@@ -11,7 +11,7 @@ EAST = 0b0010
 SOUTH = 0b0100
 WEST = 0b1000
 
-WALL_PALETTE = ["-", "=", "~", "*", "%"]
+WALL_PALETTE = ["\033[34m\u2588\033[0m", "\033[32m\u2588\033[0m", "\033[33m\u2588\033[0m", "\033[31m\u2588\033[0m"]
 PATH_MARK = "\u25cf"
 
 
@@ -72,23 +72,27 @@ class AsciiRenderer:
         os.system("cls" if os.name == "nt" else "clear")
         height = len(self.grid)
         width = len(self.grid[0]) if height else 0
+        wall = WALL_PALETTE[self.color_index]
         rendered = [
-            ["+" if row % 2 == 0 and column % 2 == 0 else " "
+            [wall if row % 2 == 0 and column % 2 == 0 else " "
              for column in range(width * 2 + 1)]
             for row in range(height * 2 + 1)
         ]
-        horizontal_wall = WALL_PALETTE[self.color_index]
 
         for y, row in enumerate(self.grid):
             for x, cell in enumerate(row):
                 if cell & NORTH:
-                    rendered[2 * y][2 * x + 1] = horizontal_wall
+                    rendered[2 * y][2 * x + 1] = wall
                 if cell & SOUTH:
-                    rendered[2 * y + 2][2 * x + 1] = horizontal_wall
+                    rendered[2 * y + 2][2 * x + 1] = wall
                 if cell & WEST:
-                    rendered[2 * y + 1][2 * x] = "|"
+                    rendered[2 * y + 1][2 * x] = wall
                 if cell & EAST:
-                    rendered[2 * y + 1][2 * x + 2] = "|"
+                    rendered[2 * y + 1][2 * x + 2] = wall
+                if cell & NORTH and cell & SOUTH and cell & WEST and cell & EAST:
+                    for remplir_y in range(0,2):
+                        for remplir_x in range(0,2):
+                            rendered[2 * y + remplir_y][2 * x + remplir_x] = "\033[41m\u2588\033[0m"
 
         if self.show_path:
             for x, y in self._path_cells()[1:-1]:
