@@ -42,11 +42,7 @@ def main(argv: list[str]) -> int:
             generator.solution
         )
         # rendering: render_maze(generator.maze)
-        rendering = AsciiRenderer(
-            generator.maze, 
-            config, 
-            path, 
-            generator)
+        rendering = AsciiRenderer(generator.maze, config, path, generator)
         rendering.run()
     except (AMazeIngError, RuntimeError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)

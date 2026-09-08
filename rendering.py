@@ -4,9 +4,6 @@
 from __future__ import annotations
 
 import os
-import sys
-from typing import Callable
-
 from config import Config
 
 NORTH = 0b0001
@@ -33,7 +30,7 @@ class AsciiRenderer:
         self,
         grid: list[list[int]],
         config: Config,
-        path: list[str],
+        path: str,
         maze_generator: MazeGenerator,
     ) -> None:
         """Set up the terminal renderer for a maze.
@@ -67,13 +64,8 @@ class AsciiRenderer:
 
     @staticmethod
     def _read_key() -> str:
-        """Read one key without requiring Enter on Windows."""
-        if os.name == "nt":
-            import msvcrt
-
-            return msvcrt.getwch()
+        """Read one key."""
         return input().strip()[:1]
-
 
     def draw(self) -> None:
         """Redraw the whole maze as ASCII characters."""
@@ -123,7 +115,6 @@ class AsciiRenderer:
             cells.append((x, y))
         return cells
 
-
     def event_keyboard(self, key: str) -> None:
         """Handle one terminal key (see class docstring for bindings)."""
         key = {
@@ -143,8 +134,15 @@ class AsciiRenderer:
 
     def regen_maze(self) -> None:
         """Load a new maze from the configured regeneration callback."""
+        from maze_output import MazeOutput
+
         self.grid = self.maze_generator.generate()
-        self.path = self.maze_generator.solution
+        self.path = MazeOutput.path_to_directions(
+            self.grid,
+            self.config.entry,
+            self.config.exit,
+            self.maze_generator.solution
+        )
         self.show_path = False
         self.draw()
 
@@ -161,23 +159,3 @@ class AsciiRenderer:
     def _close(self) -> None:
         """End the terminal renderer."""
         print("\nRenderer stopped.")
-
-
-def main() -> None:
-    """Load maze.txt (or the given path) and display it as ASCII."""
-    if len(sys.argv) != 2:
-        print("Usage: python3 render_mlx.py <maze.txt>", file=sys.stderr)
-        sys.exit(1)
-
-    try:
-        grid, config, path = read_maze_file(sys.argv[1])
-    except (OSError, ValueError) as error:
-        print(f"Unable to load maze: {error}", file=sys.stderr)
-        sys.exit(1)
-
-    renderer = AsciiRenderer(grid, config, path)
-    renderer.run()
-
-
-if __name__ == "__main__":
-    main()
